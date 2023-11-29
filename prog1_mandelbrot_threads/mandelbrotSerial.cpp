@@ -78,7 +78,7 @@ void mandelbrotSerial(
     float dy = (y1 - y0) / height;
 
     int endRow = startRow + totalRows;
-
+    // 将一个矩形切分成(width*height)个小矩形. 计算每个矩形的坐标是否属于mandel集合. 计算的时候将每个小矩形的左下角点的坐标作为小矩形的坐标. 
     for (int j = startRow; j < endRow; j++) {
         for (int i = 0; i < width; ++i) {
             float x = x0 + i * dx;
