@@ -65,9 +65,9 @@ void workerThreadStart(WorkerArgs * const args) {
     // half of the image and thread 1 could compute the bottom half.
 
     printf("Hello world from thread %d\n", args->threadId);
-
     double startTime = CycleTimer::currentSeconds();
 
+#ifdef PLAN_A
     float dx = (args->x1 - args->x0) / args->width;                 // 每个小格子的宽
     float dy = (args->y1 - args->y0) / args->height;                // 每个小格子的高
     int endRow = args->startRow + args->numRows;
@@ -79,9 +79,41 @@ void workerThreadStart(WorkerArgs * const args) {
             args->output[index] = mandel(x, y, args->maxIterations);
         }
     }
+#else
+// 不按照图片区域decompose任务, 而是按照第i格和线程x来分配任务
+    int step = args->numThreads;
+    int id = args->threadId;
+    float dx = (args->x1 - args->x0) / args->width;                 // 每个小格子的宽
+    float dy = (args->y1 - args->y0) / args->height;                // 每个小格子的高
+    int endRow = args->startRow + args->numRows;
+// 线程x只处理每一行钟特定第i格的像素. i % numThreads = x.
+    for (int j = args->startRow; j < endRow; ++j) {
+        for (unsigned int i = id; i < args->width; i += step) {
+            float x = args->x0 + i * dx;
+            float y = args->y0 + j * dy;
+            int index = j * args->width + i;
+            if ((int) i % step != id) {
+                cout<<"unexpected index and step!"<<index<<" "<<step<<" "<<" "<<id<<endl;
+                exit(-1);
+            }
+            args->output[index] = mandel(x, y, args->maxIterations);
+        }
+    }
+// 线程x只处理第k * n + i 行
+    // for (int j = id; j < endRow; j += step) {
+    //     for (unsigned int i = 0; i < args->width; ++i) {
+    //         float x = args->x0 + i * dx;
+    //         float y = args->y0 + j * dy;
+    //         int index = j * args->width + i ;
+    //         args->output[index] = mandel(x, y, args->maxIterations);
+    //     }
+    // }
+
+#endif
 
     double endTime = CycleTimer::currentSeconds();
     args->time = (endTime - startTime) * 1000;
+
 }
 
 
@@ -115,6 +147,7 @@ vector<double> mandelbrotThread(
         // TODO FOR CS149 STUDENTS: You may or may not wish to modify
         // the per-thread arguments here.  The code below copies the
         // same arguments for each thread
+    #ifdef PLAN_A
         args[i].x0 = x0;
         args[i].y0 = y0;
         args[i].x1 = x1;
@@ -131,6 +164,20 @@ vector<double> mandelbrotThread(
             args[i].numRows = y_interval;
         }
         args[i].startRow = i * y_interval;          // 起始行
+    #else
+        args[i].x0 = x0;
+        args[i].y0 = y0;
+        args[i].x1 = x1;
+        args[i].y1 = y1;
+        args[i].width = width;
+        args[i].height = height;
+        args[i].maxIterations = maxIterations;
+        args[i].numThreads = numThreads;
+        args[i].output = output;
+        args[i].threadId = i;
+        args[i].numRows = height;
+        args[i].startRow = 0;
+    #endif
     }
 
     // Spawn the worker threads.  Note that only numThreads-1 std::threads
