@@ -41,13 +41,14 @@ task void mandelbrot_ispc_task(uniform float x0, uniform float y0,
                                uniform int width, uniform int height,
                                uniform int rowsPerTask,
                                uniform int maxIterations,
-                               uniform int output[])
+                               uniform int output[],
+                               uniform int task_num)
 {
 
     // taskIndex is an ISPC built-in
     
-    uniform int ystart = taskIndex * rowsPerTask;
-    uniform int yend = ystart + rowsPerTask;
+    uniform int ystart = taskIndex * rowsPerTask;       // 起始行数
+    uniform int yend = (taskIndex == task_num - 1) ? height : ystart + rowsPerTask; // 末尾行数
     
     uniform float dx = (x1 - x0) / width;
     uniform float dy = (y1 - y0) / height;
@@ -65,15 +66,16 @@ export void mandelbrot_ispc_withtasks(uniform float x0, uniform float y0,
                                       uniform float x1, uniform float y1,
                                       uniform int width, uniform int height,
                                       uniform int maxIterations,
-                                      uniform int output[])
+                                      uniform int output[],
+                                      uniform int task_num)
 {
 
-    uniform int rowsPerTask = height / 2;
-
+    uniform int rowsPerTask = height / task_num;
     // create 2 tasks
-    launch[2] mandelbrot_ispc_task(x0, y0, x1, y1,
+    launch[task_num] mandelbrot_ispc_task(x0, y0, x1, y1,
                                      width, height,
                                      rowsPerTask,
                                      maxIterations,
-                                     output); 
+                                     output,
+                                     task_num); 
 }
