@@ -249,7 +249,43 @@ void clampedExpVector(float* values, int* exponents, float* output, int N) {
   // Your solution should work for any value of
   // N and VECTOR_WIDTH, not just when VECTOR_WIDTH divides N
   //
-  
+  __cs149_vec<int> zero_vec = _cs149_vset_int(0);
+  __cs149_vec<int> one_vec = _cs149_vset_int(1);
+  __cs149_vec<float> f9_vec = _cs149_vset_float(9.999999f);
+  __cs149_mask true_vec = _cs149_init_ones(VECTOR_WIDTH); 
+  for (int i = 0; i < N; i += VECTOR_WIDTH) {
+    int width = min(N - i, VECTOR_WIDTH);
+    __cs149_vec<float> val_vec;     // x
+    __cs149_vec<int> exp_vec;       // y
+    __cs149_vec<float> res;
+    __cs149_mask mask = _cs149_init_ones(width);
+    _cs149_vload_float(val_vec, values + i, mask);
+    _cs149_vload_int(exp_vec, exponents + i, mask);
+    
+    __cs149_mask mask_is_zero;
+    _cs149_veq_int(mask_is_zero, exp_vec, zero_vec, mask);   // if y == 0  ( if expc_vec_i == 0, then mask_is_zero_i = 1 )
+    _cs149_vset_float(res, 1.f, mask_is_zero);               // res = 1.f
+
+    __cs149_mask mask_not_zero = _cs149_mask_not(mask_is_zero); // else
+    _cs149_vload_float(res, values + i, mask_not_zero);         // result = x
+    __cs149_vec_int cnt;
+    _cs149_vsub_int(cnt, exp_vec, one_vec, mask_not_zero);      // count = y - 1
+
+    __cs149_mask mask_cnt_is_zero, mask_cnt_not_zero;
+    _cs149_veq_int(mask_cnt_is_zero, cnt, zero_vec, mask);
+    mask_cnt_not_zero = _cs149_mask_not(mask_cnt_is_zero);
+    while (_cs149_cntbits(mask_cnt_is_zero) != VECTOR_WIDTH) {    // while (cnt != 0)
+      _cs149_vmult_float(res, res, val_vec, mask_cnt_not_zero);   // res =  res * x
+      _cs149_vsub_int(cnt, cnt, one_vec, mask_cnt_not_zero);      // cnt = cnt - 1
+      _cs149_veq_int(mask_cnt_is_zero, cnt, zero_vec, mask);      // 计算cnt是否都等于0
+      mask_cnt_not_zero = _cs149_mask_not(mask_cnt_is_zero);
+    }
+
+    __cs149_mask gt9 = _cs149_init_ones(0);
+    _cs149_vgt_float(gt9, res, f9_vec, mask_not_zero);      // if res > 9.99999f
+    _cs149_vset_float(res, 9.99999f, gt9);                  // res = 9.99999f
+    _cs149_vstore_float(output + i, res, mask);             // output[i] = res
+  }
 }
 
 // returns the sum of all elements in values
@@ -270,11 +306,22 @@ float arraySumVector(float* values, int N) {
   //
   // CS149 STUDENTS TODO: Implement your vectorized version of arraySumSerial here
   //
-  
+  float s[VECTOR_WIDTH];
+  __cs149_vec<float> res = _cs149_vset_float(0.f);
+  __cs149_mask mask_all = _cs149_init_ones(VECTOR_WIDTH);
   for (int i=0; i<N; i+=VECTOR_WIDTH) {
-
+    int witdh = min(VECTOR_WIDTH, N - i);
+    __cs149_mask mask = _cs149_init_ones(witdh);
+    __cs149_vec<float> x;
+    _cs149_vload_float(x, values + i, mask);    //  提取到vector x中
+    _cs149_vadd_float(res, res, x, mask);       //  vector x 累加到 vector res中
   }
+  _cs149_hadd_float(res, res);        // 向量res中的从两侧向中间（两个两个的）元素聚集到一起, 存入res vector { 0, 1, 2, 3} -> vector { 1, 1, 5, 5}
+  _cs149_interleave_float(res, res);  // 向量res中的元素交错下位置
+  _cs149_hadd_float(res, res);        // 继续加. 最后结果就存在 res[0] == res[1]
+  _cs149_vstore_float(s, res, mask_all);
 
-  return 0.0;
+  return s[0];
+  // return 0.0;
 }
 
