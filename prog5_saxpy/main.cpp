@@ -8,11 +8,14 @@ extern void saxpySerial(int N, float a, float* X, float* Y, float* result);
 
 
 // return GB/s
+// BandWitdh: bytes / sec
 static float
 toBW(int bytes, float sec) {
     return static_cast<float>(bytes) / (1024. * 1024. * 1024.) / sec;
 }
 
+// GFLOPS 就是Giga Floating-point Operations Per Second, 即每秒10亿次的浮点运算数
+// 常作为GPU性能参数, 理论上该数值越高越好
 static float
 toGFLOPS(int ops, float sec) {
     return static_cast<float>(ops) / 1e9 / sec;
@@ -31,9 +34,9 @@ using namespace ispc;
 
 int main() {
 
-    const unsigned int N = 20 * 1000 * 1000; // 20 M element vectors (~80 MB)
-    const unsigned int TOTAL_BYTES = 4 * N * sizeof(float);
-    const unsigned int TOTAL_FLOPS = 2 * N;
+    const unsigned int N = 20 * 1000 * 1000; // 20 M element vectors (~80 MB)   // N轮计算
+    const unsigned int TOTAL_BYTES = 4 * N * sizeof(float);     // res[i] = scale * x[i] + y[i]. 4 = 3 + 1
+    const unsigned int TOTAL_FLOPS = 2 * N;                     // 每轮涉及2次计算：* , +
 
     float scale = 2.f;
 
@@ -65,10 +68,10 @@ int main() {
         minSerial = std::min(minSerial, endTime - startTime);
     }
 
-// printf("[saxpy serial]:\t\t[%.3f] ms\t[%.3f] GB/s\t[%.3f] GFLOPS\n",
-    //       minSerial * 1000,
-    //       toBW(TOTAL_BYTES, minSerial),
-    //       toGFLOPS(TOTAL_FLOPS, minSerial));
+printf("[saxpy serial]:\t\t[%.3f] ms\t[%.3f] GB/s\t[%.3f] GFLOPS\n",
+          minSerial * 1000,
+          toBW(TOTAL_BYTES, minSerial),
+          toGFLOPS(TOTAL_FLOPS, minSerial));
 
     //
     // Run the ISPC (single core) implementation
@@ -106,9 +109,9 @@ int main() {
            toBW(TOTAL_BYTES, minTaskISPC),
            toGFLOPS(TOTAL_FLOPS, minTaskISPC));
 
-    printf("\t\t\t\t(%.2fx speedup from use of tasks)\n", minISPC/minTaskISPC);
-    //printf("\t\t\t\t(%.2fx speedup from ISPC)\n", minSerial/minISPC);
-    //printf("\t\t\t\t(%.2fx speedup from task ISPC)\n", minSerial/minTaskISPC);
+    printf("\t\t\t\t(%.2fx speedup from use of tasks) (ipsc / taskispc) \n", minISPC/minTaskISPC);
+    printf("\t\t\t\t(%.2fx speedup from ISPC) (serial / ispc) \n", minSerial/minISPC);
+    printf("\t\t\t\t(%.2fx speedup from task ISPC) (serial / taskispc) \n", minSerial/minTaskISPC);
 
     delete[] arrayX;
     delete[] arrayY;
