@@ -34,7 +34,33 @@ int main() {
         // to you generate best and worse-case speedups
         
         // starter code populates array with random input values
+        // init
         values[i] = .001f + 2.998f * static_cast<float>(rand()) / RAND_MAX;
+
+        // max
+        // values[i] = 2.99999f;
+        // shc@DESKTOP-TVUERHD:~/CS149/asst1/prog4_sqrt$ ./sqrt 
+        // [sqrt serial]:          [3600.578] ms
+        // [sqrt ispc]:            [573.947] ms
+        // [sqrt task ispc]:       [69.630] ms
+        //                                 (6.27x speedup from ISPC)
+        //                                 (51.71x speedup from task ISPC)
+        
+        // min
+        // values[i] = 1.f;
+        // shc@DESKTOP-TVUERHD:~/CS149/asst1/prog4_sqrt$ ./sqrt 
+        // [sqrt serial]:          [23.719] ms
+        // [sqrt ispc]:            [11.259] ms
+        // [sqrt task ispc]:       [14.291] ms
+        //                                 (2.11x speedup from ISPC)
+        //                                 (1.66x speedup from task ISPC)
+    
+        // unbalance
+        // if (i % 8 != 0) {
+        //     values[i] = 0;
+        // } else {
+        //     values[i] = 2.99999f;
+        // }
     }
 
     // generate a gold version to check results
