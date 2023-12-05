@@ -1,5 +1,10 @@
 # Assignment 1: Performance Analysis on a Quad-Core CPU #
 
+- 总结
+  - 了解如何分配计算量, 体会多线程, SIMD, ISPC, ISPC task, BandWidth, Non-temporal
+  - 具体思考以及回答以及未解决问题见Blog:
+
+
 **Due Fri Oct 6, 11:59pm**
 
 **100 points total + 6 points extra credit**
